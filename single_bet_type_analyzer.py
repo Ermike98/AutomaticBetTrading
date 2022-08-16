@@ -1,3 +1,5 @@
+import numpy as np
+
 from scrapers.betfair import BetfairScraper
 from scrapers.betflag import BetflagScraper
 from dask.distributed import Client
@@ -83,23 +85,41 @@ class SingleBetTypeAnalyzer:
                 t += tuple(bets.iloc[bets.lay_price.argmin()][['site', 'lay_price', 'lay_size']])
                 new_index = len(df)
                 df.loc[new_index] = t
-        # Calculate the total probability
+
+        # # Calculate the total probability
         df['prob'] = 1 / df.back_price + (df.lay_price - 1) / df.lay_price
-        # Find p1 and p2 and scale them by the prob value
+        # # Find p1 and p2 and scale them by the prob value
         df['p1'] = 1 / df.back_price * (1 / df['prob'])
         df['p2'] = (df.lay_price - 1) / df.lay_price * (1 / df['prob'])
+
         # Calculate the returns r1, r2
         df['r1'] = (df.back_price - 1) * (1 - fee)
         df['r2'] = ((df.lay_price / (df.lay_price - 1)) - 1) * (1 - fee)
-        # Evaluate the optimal distribution of the portfolio according to the Kelly's Criterion
-        df['f1'] = (df.r1 * df.p1 - df.p2) / df.p2
-        df['f2'] = (df.r2 * df.p2 - df.p1) / df.p1
-        # Calculate the ExpectedROI
-        df['ExpectedROI'] = (df.r1 + 1) * df.p1 * df.f1 + (df.r2 + 1) * df.p2 * df.f2
+        # Calculate the investment distribution
+        n_step = 10
+        distribution = np.arange(0.1, 1, 1 / n_step)
+        df['p1'] = df.apply(lambda x: np.fmin(distribution * x.loc['r1'] - (1 - distribution),
+                                              (1 - distribution) * x.loc['r2'] - distribution).argmax(),
+                            axis=1) / n_step
+        df['p2'] = 1 - df['p1']
+        # Calculate the expected return
+        df['ROI'] = np.fmin(df.r1 * df.p1 - df.p2, df.r2 * df.p2 - df.p1)
+        # Calculate the value to insert in the bet
+        df['q1'] = df['p1']
+        df['q2'] = df['p2'] / df['r2']
+
+        # # Evaluate the optimal distribution of the portfolio according to the Kelly's Criterion
+        # df['f1'] = (df.r1 * df.p1 - df.p2) / df.p2
+        # df['f2'] = (df.r2 * df.p2 - df.p1) / df.p1
+        # # Calculate the ExpectedROI
+        # df['ExpectedROI'] = (df.r1 + 1) * df.p1 * df.f1 + (df.r2 + 1) * df.p2 * df.f2
+
         # Remove those rows whose f1 <= 0 or f2 <= 0
         # Sort the dataframe in descending order according to the ExpectedROI
         # Drop columns sport, prob
-        return df[(df.f1 > 0) & (df.f2 > 0)].sort_values('ExpectedROI', ascending=False).drop(columns=['sport', 'prob'])
+        # return df[(df.f1 > 0) & (df.f2 > 0)].sort_values('ExpectedROI',
+        #                                                  ascending=False).drop(columns=['sport', 'prob'])
+        return df[df.ROI > 0].sort_values('ROI', ascending=False)
 
     def auto_bets(self):
         pass

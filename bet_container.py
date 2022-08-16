@@ -94,14 +94,15 @@ class BetContainer:
         return dict(zip(matches, ids))
 
     def update_bets(self, bets_list: List[BetInfo]):
+        # Reset Data
+        self._data = defaultdict(lambda: defaultdict(dict))
+
         # Remove empty bets
-        # print('\t\tFilter the bets')
         bets_list = list(filter(lambda bet: bet.back_price != 0 and bet.lay_price != 0 and bet.club1 and bet.club2,
                                 bets_list))
-        # print('\t\tUpdate matches')
         matches_id = self.update_matches([bet[:mts] for bet in bets_list])
+
         # Transform bets list
-        # print('\t\tAppend bets')
         for bet_info in bets_list:
             match_id = matches_id[bet_info[:mts]]
             self._data[bet_info.bet_type][match_id][bet_info.site] = bet_info[-bps:]

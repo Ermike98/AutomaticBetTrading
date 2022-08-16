@@ -28,18 +28,21 @@ def parse_1x2_button(row):
     liquidity = row.find('div', class_='odds').find_all('span')
     if not (odds and len(odds) == 6 and liquidity and len(liquidity) == 8):
         return {}
-    return {'1': BetPrice(float(odds[0].text),
-                          float(liquidity[1].text[:-1]),
-                          float(odds[3].text),
-                          float(liquidity[5].text[:-1])),
-            'x': BetPrice(float(odds[1].text),
-                          float(liquidity[2].text[:-1]),
-                          float(odds[4].text),
-                          float(liquidity[6].text[:-1])),
-            '2': BetPrice(float(odds[2].text),
-                          float(liquidity[3].text[:-1]),
-                          float(odds[5].text),
-                          float(liquidity[7].text[:-1]))}
+    try:
+        return {'1': BetPrice(float(odds[0].text),
+                              float(liquidity[1].text[:-1]),
+                              float(odds[3].text),
+                              float(liquidity[5].text[:-1])),
+                'x': BetPrice(float(odds[1].text),
+                              float(liquidity[2].text[:-1]),
+                              float(odds[4].text),
+                              float(liquidity[6].text[:-1])),
+                '2': BetPrice(float(odds[2].text),
+                              float(liquidity[3].text[:-1]),
+                              float(odds[5].text),
+                              float(liquidity[7].text[:-1]))}
+    except ValueError:
+        return {}
 
 def parse_12_button(row):
     # Find odds
@@ -53,15 +56,17 @@ def parse_12_button(row):
     # print(odds)
     if not (odds and len(odds) == 4 and liquidity and len(liquidity) == 6):
         return {}
-    return {'1': BetPrice(float(odds[0].text),
-                          float(liquidity[1].text[:-1]),
-                          float(odds[2].text),
-                          float(liquidity[4].text[:-1])),
-            '2': BetPrice(float(odds[1].text),
-                          float(liquidity[2].text[:-1]),
-                          float(odds[3].text),
-                          float(liquidity[5].text[:-1]))}
-
+    try:
+        return {'1': BetPrice(float(odds[0].text),
+                              float(liquidity[1].text[:-1]),
+                              float(odds[2].text),
+                              float(liquidity[4].text[:-1])),
+                '2': BetPrice(float(odds[1].text),
+                              float(liquidity[2].text[:-1]),
+                              float(odds[3].text),
+                              float(liquidity[5].text[:-1]))}
+    except ValueError:
+        return {}
 def parse_uo_button(row):
     # Find odds
     odds_div = row.find('div', class_='odds')
